@@ -63,6 +63,7 @@ func (r *ClusterProjectReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	applyOpts := applyOpts{
 		cacheDir: "cache",
+		scheme:   r.Scheme,
 	}
 
 	if err := apply(ctx, instance, applyOpts, time.Second*30); err != nil {

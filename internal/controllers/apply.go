@@ -26,7 +26,9 @@ import (
 	"cuelang.org/go/cue/errors"
 	"github.com/fluxcd/pkg/ssa"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	apiv1 "github.com/stefanprodan/timoni/api/v1alpha1"
@@ -38,6 +40,7 @@ import (
 )
 
 type applyOpts struct {
+	scheme             *kruntime.Scheme
 	cacheDir           string
 	overwriteOwnership bool
 	force              bool
@@ -142,6 +145,18 @@ func apply(ctx context.Context, instance *v1alpha1.ClusterProject, opts applyOpt
 	}
 
 	rm.SetOwnerLabels(objects, instance.Name, instance.Namespace)
+
+	for i := range objects {
+		if objects[i].GetNamespace() == "" && instance.GetNamespace() != "" {
+			// avoid the case of "cluster-scoped resource must not have a namespace-scoped owner" errors
+			// TODO: this means cluster-scoped resources will need custom deletion, perhaps it forbids
+			// owner-based deletion mechanism; assume it migth suffice for the MVP
+			continue
+		}
+		if err := controllerutil.SetControllerReference(instance, objects[i], opts.scheme); err != nil {
+			return fmt.Errorf("cannot set controller ownership (object=%s): %w", objects[i], err)
+		}
+	}
 
 	ctx, cancel = context.WithTimeout(ctx, timeout)
 	defer cancel()
