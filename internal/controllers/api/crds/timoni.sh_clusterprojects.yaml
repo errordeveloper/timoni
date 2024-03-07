@@ -40,6 +40,8 @@ spec:
             description: ClusterProjectSpec defines the desired state of ClusterProject
             properties:
               access:
+                default:
+                  scope: cluster
                 properties:
                   namespaces:
                     items:
@@ -58,6 +60,7 @@ spec:
                   path:
                     type: string
                   repository:
+                    pattern: ^oci://.*$
                     type: string
                   tag:
                     type: string

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	apiv1 "github.com/stefanprodan/timoni/api/v1alpha1"
+	"github.com/stefanprodan/timoni/internal/controllers/api/v1alpha1"
 
 	"github.com/stefanprodan/timoni/internal/engine"
 	"github.com/stefanprodan/timoni/internal/engine/fetcher"
@@ -37,27 +38,17 @@ import (
 )
 
 type applyOpts struct {
-	pkg                string
-	name               string
-	namespace          string
-	module             string
-	version            string
-	timeout            time.Duration
 	cacheDir           string
 	overwriteOwnership bool
 	force              bool
 	wait               bool
 }
 
-func apply(ctx context.Context, opts applyOpts) error {
+func apply(ctx context.Context, instance *v1alpha1.ClusterProject, opts applyOpts, timeout time.Duration) error {
 
 	kubeconfigArgs := genericclioptions.NewConfigFlags(false)
 
 	log := log.FromContext(ctx)
-
-	if opts.version == "" {
-		opts.version = apiv1.LatestVersion
-	}
 
 	tmpDir, err := os.MkdirTemp("", apiv1.FieldManager)
 	if err != nil {
@@ -65,12 +56,12 @@ func apply(ctx context.Context, opts applyOpts) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	ctxPull, cancel := context.WithTimeout(context.Background(), opts.timeout)
+	ctxPull, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	f, err := fetcher.New(ctxPull, fetcher.Options{
-		Source:      opts.module,
-		Version:     opts.version,
+		Source:      instance.Spec.Source.Repository,
+		Version:     instance.Spec.Source.Tag,
 		Destination: tmpDir,
 		CacheDir:    opts.cacheDir,
 		// Creds:        applyArgs.creds.String(),
@@ -88,10 +79,10 @@ func apply(ctx context.Context, opts applyOpts) error {
 	cuectx := cuecontext.New()
 	builder := engine.NewModuleBuilder(
 		cuectx,
-		opts.name,
-		opts.namespace,
+		instance.Name,
+		instance.Namespace,
 		f.GetModuleRoot(),
-		opts.pkg,
+		"main",
 	)
 
 	if err := builder.WriteSchemaFile(); err != nil {
@@ -150,31 +141,31 @@ func apply(ctx context.Context, opts applyOpts) error {
 		return err
 	}
 
-	rm.SetOwnerLabels(objects, opts.name, opts.namespace)
+	rm.SetOwnerLabels(objects, instance.Name, instance.Namespace)
 
-	ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+	ctx, cancel = context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	exists := false
 	sm := runtime.NewStorageManager(rm)
-	instance, err := sm.Get(ctx, opts.name, opts.namespace)
+	storedInstance, err := sm.Get(ctx, instance.Name, instance.Namespace)
 	if err == nil {
 		exists = true
 	}
 
-	nsExists, err := sm.NamespaceExists(ctx, opts.namespace)
+	nsExists, err := sm.NamespaceExists(ctx, instance.Namespace)
 	if err != nil {
 		return fmt.Errorf("instance init failed: %w", err)
 	}
 
 	if !opts.overwriteOwnership && exists {
-		err = instanceOwnershipConflicts(*instance)
+		err = instanceOwnershipConflicts(*storedInstance)
 		if err != nil {
 			return err
 		}
 	}
 
-	im := runtime.NewInstanceManager(opts.name, opts.namespace, finalValues, *mod)
+	im := runtime.NewInstanceManager(instance.Name, instance.Namespace, finalValues, *mod)
 
 	if err := im.AddObjects(objects); err != nil {
 		return fmt.Errorf("adding objects to instance failed: %w", err)
@@ -195,25 +186,25 @@ func apply(ctx context.Context, opts applyOpts) error {
 	*/
 
 	if !exists {
-		log.Info(fmt.Sprintf("installing %s in namespace %s", opts.name, opts.namespace))
+		log.Info(fmt.Sprintf("installing %s in namespace %s", instance.Name, instance.Namespace))
 
 		if err := sm.Apply(ctx, &im.Instance, true); err != nil {
 			return fmt.Errorf("instance init failed: %w", err)
 		}
 
 		if !nsExists {
-			log.Info("Namespace/"+opts.namespace, ssa.CreatedAction)
+			log.Info("Namespace/"+instance.Namespace, ssa.CreatedAction)
 		}
 	} else {
-		log.Info(fmt.Sprintf("upgrading %s in namespace %s", opts.name, opts.namespace))
+		log.Info(fmt.Sprintf("upgrading %s in namespace %s", instance.Name, instance.Namespace))
 	}
 
-	applyOpts := runtime.ApplyOptions(opts.force, opts.timeout)
+	applyOpts := runtime.ApplyOptions(opts.force, timeout)
 	applyOpts.WaitInterval = 5 * time.Second
 
 	waitOptions := ssa.WaitOptions{
 		Interval: applyOpts.WaitInterval,
-		Timeout:  opts.timeout,
+		Timeout:  timeout,
 		FailFast: true,
 	}
 
@@ -252,7 +243,7 @@ func apply(ctx context.Context, opts applyOpts) error {
 
 	var deletedObjects []*unstructured.Unstructured
 	if len(staleObjects) > 0 {
-		deleteOpts := runtime.DeleteOptions(opts.name, opts.namespace)
+		deleteOpts := runtime.DeleteOptions(instance.Name, instance.Namespace)
 		changeSet, err := rm.DeleteAll(ctx, staleObjects, deleteOpts)
 		if err != nil {
 			return fmt.Errorf("pruning objects failed: %w", err)

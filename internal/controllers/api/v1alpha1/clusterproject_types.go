@@ -29,6 +29,7 @@ type ClusterProjectSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +optional
+	// +kubebuilder:default={"scope":"cluster"}
 	Access ClusterProjectAccess `json:"access,omitempty"`
 	// +required
 	Source ClusterProjectSource `json:"source,omitempty"`
@@ -48,7 +49,8 @@ type ClusterProjectAccess struct {
 
 type ClusterProjectSource struct {
 	// +required
-	// +kubebuilder:validation:Regex=^oci://.*$
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern=`^oci://.*$`
 	Repository string `json:"repository"`
 	// +optional
 	Tag string `json:"tag,omitempty"`
