@@ -1,0 +1,84 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: clusterprojects.timoni.sh
+spec:
+  group: timoni.sh
+  names:
+    kind: ClusterProject
+    listKind: ClusterProjectList
+    plural: clusterprojects
+    singular: clusterproject
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterProject is the Schema for the clusterprojects API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterProjectSpec defines the desired state of ClusterProject
+            properties:
+              access:
+                properties:
+                  namespaces:
+                    items:
+                      type: string
+                    minItems: 1
+                    type: array
+                  scope:
+                    default: cluster
+                    enum:
+                    - cluster
+                    - namespaced
+                    type: string
+                type: object
+              source:
+                properties:
+                  path:
+                    type: string
+                  repository:
+                    type: string
+                  tag:
+                    type: string
+                required:
+                - repository
+                type: object
+              watches:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                  type: object
+                type: array
+            type: object
+          status:
+            description: ClusterProjectStatus defines the observed state of ClusterProject
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
