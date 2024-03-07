@@ -28,8 +28,39 @@ type ClusterProjectSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of ClusterProject. Edit clusterproject_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +optional
+	Access ClusterProjectAccess `json:"access,omitempty"`
+	// +required
+	Source ClusterProjectSource `json:"source,omitempty"`
+	// +optional
+	Watches []ClusterProjectWatch `json:"watches,omitempty"`
+}
+
+type ClusterProjectAccess struct {
+	// +optional
+	// +kubebuilder:validation:Enum=cluster;namespaced
+	// +kubebuilder:default=cluster
+	Scope string `json:"scope,omitempty"`
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	Namespaces []string `json:"namespaces,omitempty"`
+}
+
+type ClusterProjectSource struct {
+	// +required
+	// +kubebuilder:validation:Regex=^oci://.*$
+	Repository string `json:"repository"`
+	// +optional
+	Tag string `json:"tag,omitempty"`
+	// +optional
+	Path string `json:"path,omitempty"`
+}
+
+type ClusterProjectWatch struct {
+	// +required
+	APIVersion string `json:"apiVersion,omitempty"`
+	// +required
+	Kind string `json:"kind,omitempty"`
 }
 
 // ClusterProjectStatus defines the observed state of ClusterProject
