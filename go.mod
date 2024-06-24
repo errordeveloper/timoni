@@ -28,21 +28,16 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
-	k8s.io/api v0.29.0
 	k8s.io/api v0.29.3
-	k8s.io/apiextensions-apiserver v0.29.0
 	k8s.io/apiextensions-apiserver v0.29.3
-	k8s.io/apimachinery v0.29.0
 	k8s.io/apimachinery v0.29.3
 	k8s.io/cli-runtime v0.29.3
-	k8s.io/client-go v0.29.0
 	k8s.io/client-go v0.29.3
-	sigs.k8s.io/controller-runtime v0.17.0
 	sigs.k8s.io/controller-runtime v0.17.2
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/onsi/ginkgo/v2 v2.15.0
+require github.com/onsi/ginkgo/v2 v2.17.1
 
 require (
 	cuelabs.dev/go/oci/ociregistry v0.0.0-20240314152124-224736b49f2e // indirect
@@ -182,7 +177,7 @@ require (
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.17.0 // indirect
+	golang.org/x/tools v0.19.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
