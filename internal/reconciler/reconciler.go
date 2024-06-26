@@ -113,6 +113,26 @@ func (r *Reconciler) Init(ctx context.Context, builder *engine.ModuleBuilder, bu
 	return nil
 }
 
+func (r *Reconciler) ForEachObject(fn func(*unstructured.Unstructured) (*unstructured.Unstructured, error)) error {
+	objects, err := r.instanceManager.ListObjects()
+	if err != nil {
+		return fmt.Errorf("failed listing objects: %w", err)
+	}
+	updatedObjects := make([]*unstructured.Unstructured, 0, len(objects))
+	for i := range objects {
+		updatedObject, err := fn(objects[i].DeepCopy())
+		if err != nil {
+			return fmt.Errorf("object callback failed: %w", err)
+		}
+		updatedObjects[i] = updatedObject
+	}
+	r.instanceManager.Instance.Inventory = nil
+	if err := r.instanceManager.AddObjects(updatedObjects); err != nil {
+		return fmt.Errorf("failed updating objects: %w", err)
+	}
+	return nil
+}
+
 func (r *Reconciler) ApplyInstance(ctx context.Context, log logr.Logger, builder *engine.ModuleBuilder, buildResult cue.Value) error {
 	if !r.instanceExists {
 		if err := r.UpdateStoredInstance(ctx); err != nil {
