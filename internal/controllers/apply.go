@@ -131,14 +131,13 @@ func apply(ctx context.Context, instance *v1alpha1.ClusterProject, opts applyOpt
 		Bundle:    "",
 	}
 
-	r := reconciler.NewInteractiveReconciler(log,
+	r := reconciler.NewReconciler(log,
 		&reconciler.CommonOptions{
 			Dir:                tmpDir,
 			Wait:               opts.wait,
 			Force:              opts.force,
 			OverwriteOwnership: opts.overwriteOwnership,
 		},
-		&reconciler.InteractiveOptions{},
 		timeout,
 	)
 	if err := r.Init(ctx, builder, buildResult, bundleInstance, kubeconfigArgs); err != nil {
@@ -147,6 +146,7 @@ func apply(ctx context.Context, instance *v1alpha1.ClusterProject, opts applyOpt
 		}
 		return err
 	}
+
 	return r.ApplyInstance(ctx, log,
 		builder,
 		buildResult,
